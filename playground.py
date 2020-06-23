@@ -3,6 +3,8 @@ from win32com.client import DispatchEx
 from utils.resilience import *
 from utils.exception_PT import *
 import time
+import sys
+import subprocess
 
 class CANalyzerAUD:
 
@@ -51,12 +53,53 @@ class CANalyzerAUD:
         CANalyzerAUD.__CANanlyzer = None
         CANalyzerAUD.___Measurement = None
 
-    def check(self):
-        CANalyzerAUD.___Measurement.OnlineMode('Vector Tool Platform')
+    def check_if_CANalyser(self):
+
+        status = False
+
+        res, err = send_command_PS('Get-Process')
+        res = res.decode('utf-8')
+        
+        if not err:
+            if 'CANw64' in res:
+                status = True
+
+        return status
+
+
+    def close_CANanlyser(self):
+        status = False
+
+        res, err = send_command_PS('Get-Process -Name "CANw64" | Stop-Process -Force')
+        res = res.decode('utf-8')
+        
+        if not self.check_if_CANalyser():
+            status = True
+
+        return status
+
+
+        '''
+        with open('process.txt', 'w') as fp:
+            
+            p = subprocess.run(["powershell.exe", 
+                            'Get-Process'], capture_output=True
+                            )
+            print(fp.write(p.stdout.decode('utf-8')))
+        
+        
+            p = subprocess.run(["powershell.exe", 
+                            'Get-Process -Name "CANw64" | Stop-Process -Force'], capture_output=True
+                            )
+
+            '''
 
 if __name__ == "__main__":
     
+    
     App = CANalyzerAUD('PT_config.cfg')
+
+    '''
     App.init_measurements()
     #print(App.start_measurements())
     #time.sleep(5)
@@ -64,3 +107,6 @@ if __name__ == "__main__":
     #time.sleep(3)
     App.check()
     #App.cleanup()
+    '''
+    
+    App.check_if_CANalyser()
