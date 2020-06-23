@@ -2,15 +2,19 @@ import win32com
 from win32com.client import DispatchEx
 from utils.resilience import *
 from utils.exception_PT import *
+from ctypes import windll
+
 import time
 import sys
 import subprocess
+import os
 
+os.path.isfile
 class CANalyzerAUD:
 
     #private 
-    ___CANanlyzer = None
-    ___Measurement = None
+    __CANanlyzer = None
+    __Measurement = None
 
     def __init__(self, config_path):
 
@@ -24,12 +28,12 @@ class CANalyzerAUD:
 
 
     def init_measurements(self):
-        CANalyzerAUD.___Measurement = CANalyzerAUD.__CANanlyzer.Measurement
+        CANalyzerAUD.__Measurement = CANalyzerAUD.__CANanlyzer.Measurement
 
 
     def start_measurements(self):
         status = False
-        CANalyzerAUD.___Measurement.Start()
+        CANalyzerAUD.__Measurement.Start()
 
         if self.is_measurements_runing:
             status = True
@@ -38,7 +42,7 @@ class CANalyzerAUD:
 
     def stop_measurements(self):
         status = False
-        CANalyzerAUD.___Measurement.Stop()
+        CANalyzerAUD.__Measurement.Stop()
 
         if not self.is_measurements_runing():
             status = True
@@ -46,12 +50,12 @@ class CANalyzerAUD:
         return status
 
     def is_measurements_runing(self):
-        return CANalyzerAUD.___Measurement.Running
+        return CANalyzerAUD.__Measurement.Running
 
     def cleanup(self):
         CANalyzerAUD.__CANanlyzer.Quit()
         CANalyzerAUD.__CANanlyzer = None
-        CANalyzerAUD.___Measurement = None
+        CANalyzerAUD.__Measurement = None
 
     def check_if_CANalyser(self):
 
@@ -79,20 +83,40 @@ class CANalyzerAUD:
         return status
 
 
-        '''
-        with open('process.txt', 'w') as fp:
-            
-            p = subprocess.run(["powershell.exe", 
-                            'Get-Process'], capture_output=True
-                            )
-            print(fp.write(p.stdout.decode('utf-8')))
-        
-        
-            p = subprocess.run(["powershell.exe", 
-                            'Get-Process -Name "CANw64" | Stop-Process -Force'], capture_output=True
-                            )
+    def set_logging(self, log_name, file_loc='PTBLFLogs', log_type='.blf', logging_block_num=1):
+        #get logging block
+        status = False
+        logging = CANalyzerAUD.__CANanlyzer.Configuration.OnlineSetup.LoggingCollection(logging_block_num)
+        drives = get_drives()
 
-            '''
+        if 'D' in drives:
+            file_loc = r'D:\\'+file_loc
+
+        else:
+            file_loc = r'C:\\'+file_loc
+
+        check_dir_loc(file_loc)
+        new_file_loc = file_loc+ "\\" + log_name+log_type
+
+        if not os.path.isfile(new_file_loc):
+            logging.FullName = new_file_loc
+            log_name = new_file_loc
+
+        else:
+            count = 0 
+            while True and count<1000:
+                new_file_loc = file_loc+ "\\" +log_name+str(count)+log_type
+
+                if not os.path.isfile(new_file_loc):
+                    logging.FullName = new_file_loc
+                    log_name = new_file_loc
+
+        if logging.FullName == log_name:
+            status = True
+
+        return status
+       
+
 
 if __name__ == "__main__":
     
@@ -109,4 +133,7 @@ if __name__ == "__main__":
     #App.cleanup()
     '''
     
-    App.check_if_CANalyser()
+    #App.check_if_CANalyser()
+    print(App.set_logging(log_name='Flexray'))
+
+    #print(App.close_CANanlyser())
