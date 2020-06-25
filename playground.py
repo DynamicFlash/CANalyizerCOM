@@ -23,13 +23,20 @@ class CANalyzerAUD:
             CANalyzerAUD.__CANanlyzer.Open(config_path)
         
         except Exception as e:
-            raise CANalyzerExpection("Couldn't create COM object")
 
-
+            if self.check_if_CANalyser():
+                self.close_CANanlyser()
+                CANalyzerAUD.__CANanlyzer = DispatchEx('CANalyzer.Application')
+                CANalyzerAUD.__CANanlyzer.Open(config_path)
 
     def init_measurements(self):
+        status = False
         CANalyzerAUD.__Measurement = CANalyzerAUD.__CANanlyzer.Measurement
 
+        if CANalyzerAUD.__Measurement!=None:
+            status = True
+        
+        return True
 
     def start_measurements(self):
         status = False
@@ -56,6 +63,8 @@ class CANalyzerAUD:
         CANalyzerAUD.__CANanlyzer.Quit()
         CANalyzerAUD.__CANanlyzer = None
         CANalyzerAUD.__Measurement = None
+        self.close_CANanlyser()
+        return True
 
     def check_if_CANalyser(self):
 
@@ -97,20 +106,31 @@ class CANalyzerAUD:
 
         check_dir_loc(file_loc)
         new_file_loc = file_loc+ "\\" + log_name+log_type
+        print(new_file_loc)
 
         if not os.path.isfile(new_file_loc):
             logging.FullName = new_file_loc
             log_name = new_file_loc
+            
+            with open(log_name, 'w') as fp:
+                fp.write('Task')
 
         else:
-            count = 0 
-            while True and count<1000:
+            count = 1
+            while True:
                 new_file_loc = file_loc+ "\\" +log_name+str(count)+log_type
+                print(new_file_loc)
 
                 if not os.path.isfile(new_file_loc):
                     logging.FullName = new_file_loc
                     log_name = new_file_loc
+                    
 
+                    with open(log_name, 'w') as fp:
+                        fp.write('Task')
+
+                    break
+                count+=1
         if logging.FullName == log_name:
             status = True
 
@@ -123,8 +143,10 @@ if __name__ == "__main__":
     
     App = CANalyzerAUD('PT_config.cfg')
 
-    '''
+
     App.init_measurements()
+    #print(App.start_measurements())
+    '''
     #print(App.start_measurements())
     #time.sleep(5)
     #print(App.stop_measurements())
@@ -134,6 +156,9 @@ if __name__ == "__main__":
     '''
     
     #App.check_if_CANalyser()
-    print(App.set_logging(log_name='Flexray'))
+
+    for n in range(0, 10):
+        print(App.set_logging(log_name='Flexray'))
+    #print(App.stop_measurements())
 
     #print(App.close_CANanlyser())
