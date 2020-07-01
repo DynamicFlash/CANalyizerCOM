@@ -1,7 +1,7 @@
-import win32com
 from win32com.client import DispatchEx
 from utils.resilience import *
 from utils.exception_PT import *
+#from utils.COMLogs import *
 from ctypes import windll
 
 import time
@@ -15,6 +15,7 @@ class CANalyzerAUD:
     #private 
     __CANanlyzer = None
     __Measurement = None
+    __Log = None
 
     def __init__(self, config_path):
 
@@ -28,6 +29,8 @@ class CANalyzerAUD:
                 self.close_CANanlyser()
                 CANalyzerAUD.__CANanlyzer = DispatchEx('CANalyzer.Application')
                 CANalyzerAUD.__CANanlyzer.Open(config_path)
+            else:
+                print("com object couldn't be initialised")
 
     def init_measurements(self):
         status = False
@@ -82,7 +85,6 @@ class CANalyzerAUD:
 
     def close_CANanlyser(self):
         status = False
-
         res, err = send_command_PS('Get-Process -Name "CANw64" | Stop-Process -Force')
         res = res.decode('utf-8')
         
@@ -92,59 +94,72 @@ class CANalyzerAUD:
         return status
 
 
-    def set_logging(self, log_name, file_loc='PTBLFLogs', log_type='.blf', logging_block_num=1):
+    def set_logging(self, log_name, file_loc='PTBLFLogs', log_type='.blf', logging_block_num=[1]):
         #get logging block
         status = False
-        logging = CANalyzerAUD.__CANanlyzer.Configuration.OnlineSetup.LoggingCollection(logging_block_num)
         drives = get_drives()
 
         if 'D' in drives:
-            file_loc = r'D:\\'+file_loc
+            file_loc = 'D:\\'+ file_loc
 
         else:
-            file_loc = r'C:\\'+file_loc
+            file_loc = 'C:\\'+file_loc
 
-        check_dir_loc(file_loc)
-        new_file_loc = file_loc+ "\\" + log_name+log_type
-        print(new_file_loc)
+        #scaled up for N number of blocks
+        for i in logging_block_num:
+            #getting logging block
+            logging = CANalyzerAUD.__CANanlyzer.Configuration.OnlineSetup.LoggingCollection(i)
 
-        if not os.path.isfile(new_file_loc):
-            logging.FullName = new_file_loc
-            log_name = new_file_loc
+            #Checking if file diretory is present
+            check_dir_loc(file_loc)
+
+            #Using Field code{MeasurementStart} to add today's date and time
+            logging.FullName = file_loc+ "\\"+ log_name+r'{MeasurementStart}'+log_type
+            new_file_loc = logging.FullName
             
-            with open(log_name, 'w') as fp:
-                fp.write('Task')
+            #Check if existing log is present
+            if not os.path.isfile(new_file_loc):
+                log_name = logging.FullName
+                
+                with open(log_name, 'w') as fp:
+                    fp.write('Task')
 
-        else:
-            count = 1
-            while True:
-                new_file_loc = file_loc+ "\\" +log_name+str(count)+log_type
-                print(new_file_loc)
+            else:
+                #custom incremental logging
+                count = 1
+                while True:
+                    logging.FullName = file_loc+ "\\" +log_name+r'{MeasurementStart}'+'_'+str(count)+log_type
+                    new_file_loc = logging.FullName
+                    #print(new_file_loc)
 
-                if not os.path.isfile(new_file_loc):
-                    logging.FullName = new_file_loc
-                    log_name = new_file_loc
+                    if not os.path.isfile(new_file_loc):
+                        log_name = new_file_loc
+                        
+                        with open(log_name, 'w') as fp:
+                            fp.write('Task')
+                        break
                     
+                    count+=1
 
-                    with open(log_name, 'w') as fp:
-                        fp.write('Task')
+            if logging.FullName == log_name:
+                status = True
 
-                    break
-                count+=1
-        if logging.FullName == log_name:
-            status = True
-
-        return status
+            return status
        
-
+    def get_log_name(self, logging_block_num):
+        logging = CANalyzerAUD.__CANanlyzer.Configuration.OnlineSetup.LoggingCollection(logging_block_num)
+        return logging.FullName
 
 if __name__ == "__main__":
     
     
     App = CANalyzerAUD('PT_config.cfg')
 
-
+    print(App.get_log_name(1))
+    App.set_logging(log_name='Flexray')
     App.init_measurements()
+    
+    print(App.get_log_name(1))
     #print(App.start_measurements())
     '''
     #print(App.start_measurements())
@@ -152,13 +167,15 @@ if __name__ == "__main__":
     #print(App.stop_measurements())
     #time.sleep(3)
     App.check()
-    #App.cleanup()
-    '''
+    App.cleanup()
+    ''' 
     
-    #App.check_if_CANalyser()
-
+    App.check_if_CANalyser()
+    '''
     for n in range(0, 10):
         print(App.set_logging(log_name='Flexray'))
+
+    '''
     #print(App.stop_measurements())
 
     #print(App.close_CANanlyser())
