@@ -33,9 +33,10 @@ class CANalyzerAUD:
             if self.check_if_CANalyser():
                 self.close_CANanlyser()
                 CANalyzerAUD.__CANanlyzer = DispatchEx('CANalyzer.Application')
-                add_info("Established connection with COM server(CANalyzer)")
                 CANalyzerAUD.__CANanlyzer.Open(config_path)
+                add_info("Established connection with COM server(CANalyzer)")
                 add_info("Configuration is loaded from path")
+
             else:
                 print("com object couldn't be initialised")
                 add_error("Couldn't establish connection with COM server(CANalyzer) after retry")
@@ -74,9 +75,9 @@ class CANalyzerAUD:
         if self.is_measurements_runing():
             CANalyzerAUD.__Measurement.Stop()
             add_info("Req : Measurement stop request dispatched")
+            time.sleep(5)
         else:
             add_error("Req : Measurement couldn't be stop, As they were not started")
-            return status
 
         if not self.is_measurements_runing():
             add_info("Res : Measurement stopped")
@@ -105,10 +106,14 @@ class CANalyzerAUD:
         status = False
         res, err = send_command_PS('Get-Process')
         res = res.decode('utf-8')
+        add_info("Req : Checking if server is running")
         
         if not err:
             if 'CANw64' in res:
                 status = True
+                add_info("Res : Server is running")
+            else:
+                add_info("Res : Server is not running")
 
         return status
 
@@ -117,8 +122,10 @@ class CANalyzerAUD:
         status = False
         res, err = send_command_PS('Get-Process -Name "CANw64" | Stop-Process -Force')
         res = res.decode('utf-8')
+        add_info("Req : Shutdown server")
         
         if not self.check_if_CANalyser():
+            add_info("Res : Server shutdown")
             status = True
 
         return status
@@ -147,12 +154,12 @@ class CANalyzerAUD:
             logging.FullName = file_loc+ "\\"+ log_name+r'{MeasurementStart}'+log_type
 
             new_file_loc = logging.FullName
-            add_info("Req : change log file name {} to {}".format(cur_log_name, new_file_loc))
+            add_info("Req : Change log file name {} to {}".format(cur_log_name, new_file_loc))
 
             #Check if existing log is present
             if not os.path.isfile(new_file_loc):
                 log_name = logging.FullName
-                add_info("Res : logging file loc {}".format(log_name))
+                add_info("Res : Logging file loc {}".format(log_name))
                 with open(log_name, 'w') as fp:
                     fp.write('Task')
 
@@ -166,7 +173,7 @@ class CANalyzerAUD:
 
                     if not os.path.isfile(new_file_loc):
                         log_name = new_file_loc
-                        add_info("Res : logging file loc {}".format(log_name))
+                        add_info("Res : Logging file loc {}".format(log_name))
                         
                         with open(log_name, 'w') as fp:
                             fp.write('Task')
@@ -185,19 +192,13 @@ class CANalyzerAUD:
 
 if __name__ == "__main__":
     App = CANalyzerAUD('PT_config.cfg')
-
-    print(App.get_log_name(1))
     App.set_logging(log_name='Flexray')
     App.init_measurements()
-    
-    print(App.get_log_name(1))
     print(App.stop_measurements())
     print(App.start_measurements())
     print(App.stop_measurements())
-
-    
-    App.check_if_CANalyser()
-  
+    print(App.check_if_CANalyser())
     print(App.stop_measurements())
-
+    print(App.cleanup())
     print(App.close_CANanlyser())
+    
