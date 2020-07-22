@@ -25,12 +25,12 @@ def get_latest_dir(all_dirs):
 def get_loc_file(file_dir_loc, regex_string):
   prog = re.compile(regex_string.strip().lower())
   #not case sensitive
-  
+
   all_files = os.listdir(file_dir_loc)
   for file in all_files:
 
     if prog.match(file.lower()):
-      return file
+      return os.path.join(file_dir_loc, file)
 
   return False
 
@@ -39,19 +39,24 @@ def find_in_file(file, phrase):
   #not case sensitive
   status = False
 
-  phrase = re.compile(phrase.strip().lower())
+  phrase = phrase.strip().lower()
 
   with open(file, 'r') as textfile:
     lines = textfile.readlines()
 
     for line in reversed(lines):
 
-      if phrase.match(line.strip().lower()):
+      if phrase in line.strip().lower():
         status = True
         break
  
   return status
+
 all_subdirs = all_subdirs_of(r'C:\Users\aldri\OneDrive\Desktop\AutonomousCar')
 
 latest_dir = get_latest_dir(all_subdirs)
-print(get_loc_file(lak, 'application'))
+
+if get_loc_file(latest_dir, 'application'):
+  phrase = "alle"
+  file = get_loc_file(latest_dir, 'application')
+  print(find_in_file(file, phrase))
